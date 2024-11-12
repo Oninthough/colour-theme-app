@@ -77,8 +77,127 @@ CREATE TABLE Web.GetData.Inputs (
 );
 
 
+import javax.xml.bind.annotation.*;
+import java.util.List;
 
+@XmlRootElement(name = "queryspec")
+@XmlAccessorType(XmlAccessType.FIELD)
+public class QuerySpec {
+    @XmlElement(name = "sessionid")
+    private String sessionId;
 
+    @XmlElementWrapper(name = "parameters")
+    @XmlElement(name = "parameter")
+    private List<Parameter> parameters;
+
+    @XmlElementWrapper(name = "elements")
+    @XmlElement(name = "element")
+    private List<Element> elements;
+
+    // Getters and Setters
+}
+
+@XmlAccessorType(XmlAccessType.FIELD)
+class Parameter {
+    @XmlAttribute
+    private int id;
+
+    @XmlAttribute
+    private String name;
+
+    @XmlAttribute
+    private String operation;
+
+    @XmlElement(name = "input")
+    private Input input;
+
+    // Getters and Setters
+}
+
+@XmlAccessorType(XmlAccessType.FIELD)
+class Input {
+    @XmlAttribute
+    private int id;
+
+    @XmlValue
+    private String value;
+
+    // Getters and Setters
+}
+
+@XmlAccessorType(XmlAccessType.FIELD)
+class Element {
+    @XmlAttribute
+    private int id;
+
+    @XmlAttribute
+    private String name;
+
+    @XmlAttribute
+    private String format;
+
+    @XmlAttribute
+    private String delimiter;
+
+    @XmlElement(name = "errorcode")
+    private ErrorCode errorCode;
+
+    @XmlElementWrapper(name = "fields")
+    @XmlElement(name = "field")
+    private List<Field> fields;
+
+    // Getters and Setters
+}
+
+@XmlAccessorType(XmlAccessType.FIELD)
+class ErrorCode {
+    @XmlAttribute
+    private String id;
+
+    // Getters and Setters
+}
+
+@XmlAccessorType(XmlAccessType.FIELD)
+class Field {
+    @XmlAttribute
+    private String id;
+
+    @XmlAttribute
+    private int index;
+
+    // Getters and Setters
+}
+ 
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.Marshaller;
+import java.io.StringWriter;
+
+public class XmlProcessor {
+    public String toXml(QuerySpec querySpec) throws Exception {
+        JAXBContext jaxbContext = JAXBContext.newInstance(QuerySpec.class);
+        Marshaller marshaller = jaxbContext.createMarshaller();
+        marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+
+        StringWriter writer = new StringWriter();
+        marshaller.marshal(querySpec, writer);
+
+        return writer.toString();
+    }
+}
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.Unmarshaller;
+import java.io.StringReader;
+
+public class XmlProcessor {
+    public QuerySpec fromXml(String xml) throws Exception {
+        JAXBContext jaxbContext = JAXBContext.newInstance(QuerySpec.class);
+        Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+
+        StringReader reader = new StringReader(xml);
+        return (QuerySpec) unmarshaller.unmarshal(reader);
+    }
+}
 
 
 
