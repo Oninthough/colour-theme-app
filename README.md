@@ -202,10 +202,208 @@ public class XmlProcessor {
 
 
 
+import javax.persistence.*;
+import java.util.Date;
+import lombok.*;
+
+@Data
+@Entity
+@Table(name = "FileAppendQueryLog", schema = "Web.GetData")
+public class FileAppendQueryLog {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "LogId")
+    private Integer logId;
+
+    @Column(name = "QueryDate", nullable = false)
+    private Date queryDate;
+
+    @Column(name = "UserName", nullable = false, length = 50)
+    private String userName;
+
+    @Column(name = "UserAddress", length = 50)
+    private String userAddress;
+
+    @Column(name = "Path", nullable = false, length = 128)
+    private String path;
+
+    @Column(name = "Computer", length = 50)
+    private String computer;
+
+    @Lob
+    @Column(name = "QuerySpec", nullable = false)
+    private String querySpec;
+
+    @Lob
+    @Column(name = "FileSpec", nullable = false)
+    private String fileSpec;
+
+    @Lob
+    @Column(name = "InputSpec", nullable = false)
+    private String inputSpec;
+
+    @Column(name = "File", length = 128)
+    private String file;
+
+    @Column(name = "SessionId", length = 50)
+    private String sessionId;
+}
+
+import javax.persistence.*;
+import java.util.Date;
+import java.util.UUID;
+import lombok.*;
+
+@Data
+@Entity
+@Table(name = "FileAppend_Results", schema = "Web.GetData")
+public class FileAppendResult {
+    @Id
+    @Column(name = "ResultId", columnDefinition = "uniqueidentifier")
+    private UUID resultId;
+
+    @Column(name = "OrigId", nullable = false)
+    private Integer origId;
+
+    @Column(name = "SubmittedDate", nullable = false)
+    private Date submittedDate;
+
+    @Column(name = "SubmittedFilename", nullable = false, length = 256)
+    private String submittedFilename;
+
+    @Column(name = "Status", nullable = false, length = 25)
+    private String status;
+
+    @Lob
+    @Column(name = "LongTrans", nullable = false)
+    private String longTrans;
+
+    @Column(name = "LastCheckedDate", nullable = false)
+    private Date lastCheckedDate;
+
+    @Column(name = "OutputFilename", length = 256)
+    private String outputFilename;
+
+    @Column(name = "Url", length = 256)
+    private String url;
+
+    @Column(name = "EshipUrl", length = 300)
+    private String eshipUrl;
+
+    @Column(name = "FileAppendQueryLogId")
+    private Integer fileAppendQueryLogId;
+
+    // Bi-directional relationships if necessary
+    @ManyToOne
+    @JoinColumn(name = "FileAppendQueryLogId", insertable = false, updatable = false)
+    private FileAppendQueryLog fileAppendQueryLog;
+}
+import javax.persistence.*;
+import lombok.*;
+
+@Data
+@Entity
+@Table(name = "ResultFields", schema = "Web.GetData")
+@IdClass(ResultFieldId.class) // Composite primary key class
+public class ResultField {
+    @Id
+    @Column(name = "ElementID")
+    private Integer elementId;
+
+    @Id
+    @Column(name = "FieldIndex")
+    private Integer fieldIndex;
+
+    @Column(name = "Name", nullable = false, length = 50)
+    private String name;
+
+    @Column(name = "Description", columnDefinition = "varchar(MAX)")
+    private String description;
+
+    @Column(name = "Example", columnDefinition = "varchar(MAX)")
+    private String example;
+
+    @Column(name = "Start")
+    private Integer start;
+
+    @Column(name = "Size")
+    private Integer size;
+
+    @Column(name = "Path", length = 512)
+    private String path;
+
+    @Column(name = "Default", nullable = false)
+    private boolean isDefault;
+
+    @Column(name = "FieldPicker", length = 50)
+    private String fieldPicker;
+
+    @Lob
+    @Column(name = "FormattedField", columnDefinition = "xml")
+    private String formattedField;
+
+    @Column(name = "ResultFieldTypeID")
+    private Integer resultFieldTypeId;
+
+    // Mapping back to Element
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ElementID", insertable = false, updatable = false)
+    private Element element;
+}
+import java.io.Serializable;
+import javax.persistence.*;
+
+@Embeddable
+public class ResultFieldId implements Serializable {
+    private Integer elementId;
+    private Integer fieldIndex;
+
+    // Constructors, getters and setters, hashCode, equals methods are needed
+    public ResultFieldId() {}
+
+    public ResultFieldId(Integer elementId, Integer fieldIndex) {
+        this.elementId = elementId;
+        this.fieldIndex = fieldIndex;
+    }
+
+    // standard getters and setters
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ResultFieldId that = (ResultFieldId) o;
+        return elementId.equals(that.elementId) && fieldIndex.equals(that.fieldIndex);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(elementId, fieldIndex);
+    }
+}
 
 
 
+import javax.persistence.*;
+import lombok.*;
 
+@Data
+@Entity
+@Table(name = "Inputs", schema = "Web.GetData")
+public class Inputs {
+    @Id
+    @Column(name = "InputID")
+    private Integer inputId;
+
+    @Column(name = "Name", nullable = false, length = 50)
+    private String name;
+
+    @Column(name = "Description", columnDefinition = "varchar(MAX)")
+    private String description;
+
+    @Column(name = "FormControlID", nullable = false)
+    private Integer formControlId;
+}
 
 
 
