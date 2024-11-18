@@ -526,6 +526,456 @@ public String processFileGeneration(String content, Long elementId, String delim
 
 
 
+{
+  "filespec": {
+    "infile": {
+      "format": "delimited",
+      "delimiter": "|",
+      "headerrow": true,
+      "columns": [
+        {
+          "id": 0,
+          "input": "0"
+        },
+        {
+          "id": 1,
+          "input": "1"
+        },
+        {
+          "id": 2,
+          "input": null
+        }
+      ]
+    },
+    "outfile": {
+      "format": "delimited",
+      "delimiter": "|",
+      "columns": [
+        {
+          "heading": "Phone Nos",
+          "column": 0
+        },
+        {
+          "heading": "PDE Screen",
+          "column": 1
+        },
+        {
+          "heading": "ZIP4",
+          "column": 2
+        },
+        {
+          "heading": "EID 1321 ResultCode",
+          "errorcode": "1321:ErrorCode"
+        },
+        {
+          "heading": "Address Locale",
+          "field": "1321:Address Locale"
+        },
+        {
+          "heading": "Address Return Status",
+          "field": "1321:Address Return Status"
+        },
+        {
+          "heading": "Status Code",
+          "field": "1321:Status Code"
+        },
+        {
+          "heading": "Spatial Key",
+          "field": "1321:Spatial Key"
+        },
+        {
+          "heading": "Lat/Lon Match Precision",
+          "field": "1321:Lat/Lon Match Precision"
+        },
+        {
+          "heading": "Phone Type Code",
+          "field": "1321:Phone Type Code"
+        },
+        {
+          "heading": "Point Code",
+          "field": "1321:Point Code"
+        },
+        {
+          "heading": "TimeZone",
+          "field": "1321:TimeZone"
+        },
+        {
+          "heading": "In NXX Master Source Table",
+          "field": "1321:In NXX Master Source Table"
+        },
+        {
+          "heading": "Dialable",
+          "field": "1321:Dialable"
+        },
+        {
+          "heading": "Day Light Savings",
+          "field": "1321:Day Light Savings"
+        },
+        {
+          "heading": "FIPS Code",
+          "field": "1321:FIPS Code"
+        },
+        {
+          "heading": "OCN",
+          "field": "1321:OCN"
+        },
+        {
+          "heading": "Extended Address Key",
+          "field": "1321:Extended Address Key"
+        },
+        {
+          "heading": "Record Type",
+          "field": "1321:Record Type"
+        },
+        {
+          "heading": "Primary Address Parity",
+          "field": "1321:Primary Address Parity"
+        },
+        {
+          "heading": "Secondary Address Parity",
+          "field": "1321:Secondary Address Parity"
+        },
+        {
+          "heading": "Building Firm Name",
+          "field": "1321:Building Firm Name"
+        },
+        {
+          "heading": "Primary Address Number",
+          "field": "1321:Primary Address Number"
+        },
+        {
+          "heading": "Street Pre-direction",
+          "field": "1321:Street Pre-direction"
+        },
+        {
+          "heading": "Street Name",
+          "field": "1321:Street Name"
+        },
+        {
+          "heading": "Street Type",
+          "field": "1321:Street Type"
+        },
+        {
+          "heading": "Street Post-direction",
+          "field": "1321:Street Post-direction"
+        },
+        {
+          "heading": "Secondary Address Number",
+          "field": "1321:Secondary Address Number"
+        },
+        {
+          "heading": "Secondary Address Type",
+          "field": "1321:Secondary Address Type"
+        },
+        {
+          "heading": "Post Office City Name",
+          "field": "1321:Post Office City Name"
+        },
+        {
+          "heading": "State",
+          "field": "1321:State"
+        },
+        {
+          "heading": "ZIP Code",
+          "field": "1321:ZIP Code"
+        },
+        {
+          "heading": "ZIP+4",
+          "field": "1321:ZIP+4"
+        },
+        {
+          "heading": "Delivery Point Code",
+          "field": "1321:Delivery Point Code"
+        },
+        {
+          "heading": "Name Type",
+          "field": "1321:Name Type"
+        },
+        {
+          "heading": "Last Name",
+          "field": "1321:Last Name"
+        },
+        {
+          "heading": "First Name",
+          "field": "1321:First Name"
+        },
+        {
+          "heading": "Middle Initial",
+          "field": "1321:Middle Initial"
+        },
+        {
+          "heading": "Business Name",
+          "field": "1321:Business Name"
+        },
+        {
+          "heading": "Business Suffix",
+          "field": "1321:Business Suffix"
+        },
+        {
+          "heading": "New NPA",
+          "field": "1321:New NPA"
+        },
+        {
+          "heading": "Carrier Route",
+          "field": "1321:Carrier Route"
+        },
+        {
+          "heading": "Spatially Inconsistent",
+          "field": "1321:Spatially Inconsistent"
+        },
+        {
+          "heading": "Unique Source Flag",
+          "field": "1321:Unique Source Flag"
+        },
+        {
+          "heading": "CAN - Building Firm Name",
+          "field": "1321:CAN - Building Firm Name"
+        },
+        {
+          "heading": "CAN - Route Service Type Desc",
+          "field": "1321:CAN - Route Service Type Desc"
+        },
+        {
+          "heading": "CAN - Route Service Type Number",
+          "field": "1321:CAN - Route Service Type Number"
+        },
+        {
+          "heading": "CAN - Building Number",
+          "field": "1321:CAN - Building Number"
+        },
+        {
+          "heading": "CAN - Street Name",
+          "field": "1321:CAN - Street Name"
+        },
+        {
+          "heading": "CAN - Street Type",
+          "field": "1321:CAN - Street Type"
+        },
+        {
+          "heading": "CAN - Post-direction",
+          "field": "1321:CAN - Post-direction"
+        },
+        {
+          "heading": "CAN - Secondary Address Number",
+          "field": "1321:CAN - Secondary Address Number"
+        },
+        {
+          "heading": "CAN - Secondary Address Type",
+          "field": "1321:CAN - Secondary Address Type"
+        },
+        {
+          "heading": "CAN - Municipality",
+          "field": "1321:CAN - Municipality"
+        },
+        {
+          "heading": "CAN - Province",
+          "field": "1321:CAN - Province"
+        },
+        {
+          "heading": "CAN - FSALDU",
+          "field": "1321:CAN - FSALDU"
+        },
+        {
+          "heading": "CAN - Street Accent Indicator",
+          "field": "1321:CAN - Street Accent Indicator"
+        },
+        {
+          "heading": "CAN - Municipality Accent Indicator",
+          "field": "1321:CAN - Municipality Accent Indicator"
+        },
+        {
+          "heading": "CAN - Province Accent Indicator",
+          "field": "1321:CAN - Province Accent Indicator"
+        }
+      ]
+    }
+  }
+}
+
+@XmlAccessorType(XmlAccessType.FIELD)
+public class Column {
+    @XmlAttribute
+    private int id;
+    
+    @XmlAttribute
+    private String input;
+    
+    @XmlAttribute
+    private String heading;
+    
+    @XmlAttribute
+    private int column;
+    
+    @XmlAttribute
+    private String errorcode;
+    
+    @XmlAttribute
+    private String field;
+
+    // Getters and Setters
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getInput() {
+        return input;
+    }
+
+    public void setInput(String input) {
+        this.input = input;
+    }
+
+    public String getHeading() {
+        return heading;
+    }
+
+    public void setHeading(String heading) {
+        this.heading = heading;
+    }
+
+    public int getColumn() {
+        return column;
+    }
+
+    public void setColumn(int column) {
+        this.column = column;
+    }
+
+    public String getErrorcode() {
+        return errorcode;
+    }
+
+    public void setErrorcode(String errorcode) {
+        this.errorcode = errorcode;
+    }
+
+    public String getField() {
+        return field;
+    }
+
+    public void setField(String field) {
+        this.field = field;
+    }
+}
+@XmlAccessorType(XmlAccessType.FIELD)
+public class Outfile {
+    @XmlAttribute
+    private String format;
+    
+    @XmlAttribute
+    private String delimiter;
+
+    @XmlElement(name = "column")
+    private List<Column> columns;
+
+    // Getters and Setters
+    public String getFormat() {
+        return format;
+    }
+
+    public void setFormat(String format) {
+        this.format = format;
+    }
+
+    public String getDelimiter() {
+        return delimiter;
+    }
+
+    public void setDelimiter(String delimiter) {
+        this.delimiter = delimiter;
+    }
+
+    public List<Column> getColumns() {
+        return columns;
+    }
+
+    public void setColumns(List<Column> columns) {
+        this.columns = columns;
+    }
+}
+
+@XmlAccessorType(XmlAccessType.FIELD)
+public class Infile {
+    @XmlAttribute
+    private String format;
+    
+    @XmlAttribute
+    private String delimiter;
+    
+    @XmlAttribute
+    private boolean headerrow;
+
+    @XmlElement(name = "column")
+    private List<Column> columns;
+
+    // Getters and Setters
+    public String getFormat() {
+        return format;
+    }
+
+    public void setFormat(String format) {
+        this.format = format;
+    }
+
+    public String getDelimiter() {
+        return delimiter;
+    }
+
+    public void setDelimiter(String delimiter) {
+        this.delimiter = delimiter;
+    }
+
+    public boolean isHeaderrow() {
+        return headerrow;
+    }
+
+    public void setHeaderrow(boolean headerrow) {
+        this.headerrow = headerrow;
+    }
+
+    public List<Column> getColumns() {
+        return columns;
+    }
+
+    public void setColumns(List<Column> columns) {
+        this.columns = columns;
+    }
+}
+
+import javax.xml.bind.annotation.*;
+import java.util.List;
+
+@XmlRootElement(name = "filespec")
+@XmlAccessorType(XmlAccessType.FIELD)
+public class FileSpec {
+    @XmlElement(name = "infile")
+    private Infile infile;
+
+    @XmlElement(name = "outfile")
+    private Outfile outfile;
+
+    // Getters and Setters
+    public Infile getInfile() {
+        return infile;
+    }
+
+    public void setInfile(Infile infile) {
+        this.infile = infile;
+    }
+
+    public Outfile getOutfile() {
+        return outfile;
+    }
+
+    public void setOutfile(Outfile outfile) {
+        this.outfile = outfile;
+    }
+}
+
 
 
  
