@@ -977,5 +977,180 @@ public class FileSpec {
 }
 
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import java.io.StringReader;
+import java.io.StringWriter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class FileAppendService {
+    @Autowired
+    private FileAppendQueryLogRepository fileAppendQueryLogRepository;
+
+    @Autowired
+    private FileAppendResultRepository fileAppendResultRepository;
+
+    @Transactional
+    public void createFileAppendData(FileAppendQueryLogDTO logDTO, FileAppendResultDTO resultDTO) throws Exception {
+        // Convert QuerySpec and FileSpec to XML
+        String querySpecXml = convertToXml(logDTO.getQuerySpec());
+        String fileSpecXml = convertToXml(logDTO.getFileSpec());
+
+        FileAppendQueryLog log = new FileAppendQueryLog();
+        log.setQueryDate(logDTO.getQueryDate());
+        log.setUserName(logDTO.getUserName());
+        log.setUserAddress(logDTO.getUserAddress());
+        log.setPath(logDTO.getPath());
+        log.setComputer(logDTO.getComputer());
+        log.setSessionId(logDTO.getSessionId());
+        log.setQuerySpec(querySpecXml);
+        log.setFileSpec(fileSpecXml);
+        fileAppendQueryLogRepository.save(log);
+
+        FileAppendResult result = new FileAppendResult();
+        result.setOrigId(resultDTO.getOrigId());
+        result.setSubmittedDate(resultDTO.getSubmittedDate());
+        result.setSubmittedFilename(resultDTO.getSubmittedFilename());
+        result.setStatus(resultDTO.getStatus());
+        result.setLastCheckedDate(resultDTO.getLastCheckedDate());
+        result.setOutputFilename(resultDTO.getOutputFilename());
+        result.setUrl(resultDTO.getUrl());
+        result.setEshipUrl(resultDTO.getEshipUrl());
+        result.setFileAppendQueryLog(log);
+        fileAppendResultRepository.save(result);
+    }
+
+    private String convertToXml(Object object) throws Exception {
+        JAXBContext context = JAXBContext.newInstance(object.getClass());
+        Marshaller marshaller = context.createMarshaller();
+        marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+        StringWriter writer = new StringWriter();
+        marshaller.marshal(object, writer);
+        return writer.toString();
+    }
+}
+
+
+
+
+
+
+
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/file-append")
+public class FileAppendController {
+    @Autowired
+    private FileAppendService fileAppendService;
+
+    @PostMapping("/create")
+    public ResponseEntity<?> createFileAppendData(@RequestBody FileAppendQueryLogDTO logDTO, @RequestBody FileAppendResultDTO resultDTO) {
+        try {
+            fileAppendService.createFileAppendData(logDTO, resultDTO);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to create data: " + e.getMessage());
+        }
+    }
+}
+
+
+
+{
+  "logDTO": {
+    "queryDate": "2024-11-21T12:00:00Z",
+    "userName": "JohnDoe",
+    "userAddress": "1234 Street, City",
+    "path": "/path/to/query",
+    "computer": "DESKTOP123",
+    "sessionId": "SESSION12345",
+    "querySpec": {
+      "sessionId": "",
+      "parameters": [
+        {
+          "id": 1,
+          "name": "Phone Number",
+          "operation": "simple",
+          "input": {
+            "id": 0,
+            "value": ""
+          }
+        },
+        {
+          "id": 599,
+          "name": "Phone Attributes Requested",
+          "operation": "simple",
+          "input": {
+            "id": 1,
+            "value": "1,2,3,4,5,6,7,8"
+          }
+        }
+      ],
+      "elements": []
+    },
+    "fileSpec": {
+      "infile": {
+        "format": "delimited",
+        "delimiter": "|",
+        "headerrow": true,
+        "columns": [
+          {
+            "id": 0,
+            "input": "0"
+          },
+          {
+            "id": 1,
+            "input": "1"
+          },
+          {
+            "id": 2
+          }
+        ]
+      },
+      "outfile": {
+        "format": "delimited",
+        "delimiter": "|",
+        "columns": [
+          {
+            "heading": "Phone Nos",
+            "column": 0
+          },
+          {
+            "heading": "PDE Screen",
+            "column": 1
+          },
+          {
+            "heading": "ZIP4",
+            "column": 2
+          }
+        ]
+      }
+    }
+  },
+  "resultDTO": {
+    "resultId": "550e8400-e29b-41d4-a716-446655440000",
+    "origId": 123,
+    "submittedDate": "2024-11-21T12:00:00Z",
+    "submittedFilename": "file.txt",
+    "status": "Processed",
+    "lastCheckedDate": "2024-11-21T12:00:00Z",
+    "outputFilename": "output.txt",
+    "url": "http://example.com",
+    "eshipUrl": "http://example.com/ship",
+    "fileAppendQueryLogId": 1
+  }
+}
+
+
+
+
 
  
