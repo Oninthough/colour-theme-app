@@ -1148,6 +1148,140 @@ public class FileAppendController {
     "fileAppendQueryLogId": 1
   }
 }
+spring.mail.host=smtp.mailserver.com
+spring.mail.port=587
+spring.mail.username=username
+spring.mail.password=password
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.connectiontimeout=5000
+spring.mail.properties.mail.smtp.timeout=3000
+spring.mail.properties.mail.smtp.starttls.enable=true
+sender-email=no-reply@yourdomain.com
+
+package com.example.demo.util;
+
+import freemarker.template.Configuration;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.stereotype.Component;
+import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
+
+import javax.mail.internet.MimeMessage;
+import java.util.HashMap;
+import java.util.Map;
+
+@Component
+public class EmailUtil {
+
+    @Autowired
+    private JavaMailSender mailSender;
+
+    @Autowired
+    private Configuration freemarkerConfig;
+
+    @Value("${sender-email}")
+    private String senderEmail;
+
+    public void sendEmail(String to, String subject, Map<String, Object> templateModel) throws Exception {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+        helper.setFrom(senderEmail);
+        helper.setTo(to);
+        helper.setSubject(subject);
+
+        String text = generateMailContent(templateModel);
+        helper.setText(text, true);
+
+        mailSender.send(message);
+    }
+
+    private String generateMailContent(Map<String, Object> model) throws Exception {
+        return FreeMarkerTemplateUtils.processTemplateIntoString(
+            freemarkerConfig.getTemplate("email-template.ftlh"), model);
+    }
+}
+
+
+package com.example.demo.controller;
+
+import com.example.demo.util.EmailUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/email")
+public class EmailController {
+
+    @Autowired
+    private EmailUtil emailUtil;
+
+    @PostMapping("/send")
+    public String sendEmail(@RequestBody Map<String, Object> payload) {
+        try {
+            emailUtil.sendEmail("recipient@example.com", "Subject of email", payload);
+            return "Email sent successfully";
+        } catch (Exception e) {
+            return "Error sending email: " + e.getMessage();
+        }
+    }
+}
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+        .header {
+            background-color: #f2f2f2;
+            padding: 10px;
+            text-align: center;
+        }
+        .content {
+            margin: 20px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .footer {
+            font-size: 12px;
+            text-align: center;
+            color: #666;
+        }
+        a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Neustar Information Services</h1>
+    </div>
+    <div class="content">
+        <h2>Your Report is Ready</h2>
+        <p><strong>Report Title:</strong> ${reportTitle}</p>
+        <p><strong>Download URL:</strong> <a href="${downloadUrl}">Click here to download the report</a></p>
+        <p><strong>Expiration (GMT):</strong> ${expiration}</p>
+    </div>
+    <div class="footer">
+        <p>Support Email: <a href="mailto:support-infoservices@neustar.biz">support-infoservices@neustar.biz</a></p>
+        <p><a href="http://infozone-reports.example.com">InfoZONE - Reports</a></p>
+    </div>
+</body>
+</html>
 
 
 
