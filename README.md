@@ -1232,7 +1232,7 @@ public class EmailController {
         }
     }
 }
-
+/**
 
 <!DOCTYPE html>
 <html>
@@ -1283,7 +1283,56 @@ public class EmailController {
 </body>
 </html>
 
+**/
 
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+        .header {
+            background-color: #f2f2f2;
+            padding: 10px;
+            text-align: center;
+        }
+        .content {
+            margin: 20px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .footer {
+            font-size: 12px;
+            text-align: center;
+            color: #666;
+        }
+        a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Neustar Information Services</h1>
+    </div>
+    <div class="content">
+        <h2>Your Report is Ready</h2>
+        <p><strong>Report Title:</strong> ${reportTitle}</p>
+        <p><strong>Download URL:</strong> <a href="${downloadUrl}">Click here to download the report</a></p>
+        <p><strong>Expiration (GMT):</strong> ${expiration}</p>
+    </div>
+    <div class="footer">
+        <p>Support Email: <a href="mailto:support-infoservices@neustar.biz">support-infoservices@neustar.biz</a></p>
+        <p><a href="http://infozone-reports.example.com">InfoZONE - Reports</a></p>
+    </div>
+</body>
+</html>
 
 
 
