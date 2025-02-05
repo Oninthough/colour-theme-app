@@ -453,4 +453,176 @@ public class MafDatLoader {
         }
     }
 }
+.
+
+
+
+
+
+from __future__ import annotations
+from datetime import datetime, timedelta
+from airflow.operators.empty import EmptyOperator
+import os
+import json
+from urllib.parse import urlparse
+from google.cloud import secretmanager, storage
+import google.auth
+import mysql.connector
+import subprocess
+import shlex
+from airflow.models import Variable
+from airflow.decorators import task
+from airflow.models.dag import DAG
+from zip_file_alerting_util import send_email
+import re
+
+# Configuration setup
+cred = google.auth.default()
+project_id = cred[1]
+
+maf_bucket_name = Variable.get("maf_bucket_name")
+prefix = Variable.get("maf_files_prefix")
+secretmanagerPath = Variable.get("secrets_manager_path")
+environment = "Test"
+
+default_dag_args = {
+    'retries': 1,
+    'retry_delay': timedelta(minutes=2),
+    'email_on_failure': True,
+    'email_on_retry': True,
+    'email': re.split("[,;]", "@EMAIL_DIST;vijaykumar.p@transunion.com"),
+}
+
+# Utility Functions
+def storage_client():
+    """Create a GCS storage client"""
+    return storage.Client()
+
+def get_db_config():
+    """Retrieve database configuration from Secret Manager"""
+    client = secretmanager.SecretManagerServiceClient()
+    try:
+        response = client.access_secret_version(name=secretmanagerPath)
+        secret = response.payload.data.decode('UTF-8')
+        secret_dict = json.loads(secret)
+        total_url = secret_dict["mysql_jdbc-url"]
+        parsed_url = urlparse(total_url)
+        parsed_url_path = urlparse(parsed_url.path)
+        
+        return {
+            'user': secret_dict["mysql_username"],
+            'password': secret_dict["mysql_password"],
+            'host': parsed_url_path.hostname,
+            'port': parsed_url_path.port,
+            'database': parsed_url_path.path.lstrip('/'),
+            'ssl_ca': "/home/airflow/gcs/data/certs/server-ca.pem",
+            'ssl_cert': "/home/airflow/gcs/data/certs/client-cert.pem",
+            'ssl_key': "/home/airflow/gcs/data/certs/client-key.pem"
+            }
+    except Exception as e:
+        print(f"Error retrieving secrets: {e}")
+        raise
+
+def initialize_maf_master_table(num_of_files,loader_type):
+    """Initialize master table for tracking DAT file processing"""
+    config = get_db_config()
+    try:
+        conn = mysql.connector.connect(**config)
+        cursor = conn.cursor()
+        start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        insert_query = '''
+        INSERT INTO maf_master_data_run 
+        (num_of_files, total_records, success_count, failure_count, status, start_date, end_date, loader_type)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        '''
+        cursor.execute(insert_query, (num_of_files, 0, 0, 0, 0, start_date, None, loader_type))
+        conn.commit()
+        
+        cursor.execute("SELECT LAST_INSERT_ID()")
+        return cursor.fetchone()[0]
+    finally:
+        if 'conn' in locals() and conn.is_connected():
+            cursor.close()
+            conn.close()
+
+def download_file_from_gcs(source_file, destination_file):
+    """Download file from GCS to local filesystem"""
+    client = storage_client()
+    bucket = client.bucket(maf_bucket_name)
+    blob = bucket.blob(source_file)
+    blob.download_to_filename(destination_file)
+    print(f'File {source_file} downloaded to {destination_file}')
+
+def delete_file(file_path):
+    """Delete local file after processing"""
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        print(f'File {file_path} deleted')
+
+def process_single_dat_file(file_name, run_id, loader_type):
+    """Process a single DAT file"""
+    try:
+        filename = file_name.split('/')[-1]
+        tmpfilename = f"/tmp/{filename}"
+        # Download file
+        download_file_from_gcs(file_name, tmpfilename)
+        # Process file
+        java_command = f"java -cp /home/airflow/gcs/data/lib/*:/home/airflow/gcs/data/MafDatLoader-1.0-SNAPSHOT.jar com.nis.data.pipeline.maf.MafDatLoader {tmpfilename} {run_id} {secretmanagerPath} {loader_type}"
+        command_args = shlex.split(java_command)
+        process = subprocess.run(command_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Output for {filename}:")
+        print(process.stdout)
+        if process.stderr:
+            print(f"Errors for {filename}:")
+            print(process.stderr)
+        process.check_returncode()
+        return True
+    except Exception as e:
+        print(f"Error processing file {filename}: {e}")
+        return False
+    finally:
+        delete_file(tmpfilename)
+
+# DAG Definition
+with DAG('zip_file_loader', 
+         schedule_interval='@once', 
+         start_date=datetime(2024, 6, 27), 
+         default_args=default_dag_args) as dag:
+
+    @task(task_id="get_datFiles_from_gcs")
+    def get_datFiles_from_gcs():
+        client = storage_client()
+        bucket = client.bucket(maf_bucket_name)
+        filenames = bucket.list_blobs(prefix=prefix)
+        zip5_files = [filename.name for filename in filenames if "Zip5" in filename.name]
+        zip9_files = [filename.name for filename in filenames if "Zip9" in filename.name]
+        num_files = len(zip5_files) + len(zip9_files)
+        loader_type = "Zip Loader"
+        run_id = initialize_maf_master_table(num_files, loader_type)
+        return zip5_files, zip9_files, run_id
+
+    @task(task_id="process_zip5_dat_files")
+    def process_zip5_dat_files(zip5_files, run_id):
+        results = [process_single_dat_file(file, run_id, "Zip5") for file in zip5_files]
+        return all(results)
+
+    @task(task_id="process_zip9_dat_files")
+    def process_zip9_dat_files(zip9_files, run_id):
+        results = [process_single_dat_file(file, run_id, "Zip9") for file in zip9_files]
+        return all(results)
+
+    @task(task_id="finalize")
+    def finalize():
+        """Final task to finish the workflow"""
+        print("All files processed successfully.")
+
+    start = EmptyOperator(task_id="start")
+    end = EmptyOperator(task_id="end")
+
+    zip5_files, zip9_files, run_id = get_datFiles_from_gcs()
+    process_zip5 = process_zip5_dat_files(zip5_files, run_id)
+    process_zip9 = process_zip9_dat_files(zip9_files, run_id)
+
+    start >> get_datFiles_from_gcs() >> [process_zip5, process_zip9] >> finalize() >> end
 
