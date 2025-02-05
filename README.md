@@ -343,3 +343,114 @@ public class MafDatLoader {
 
 }
 but this code is not even running if possible remove thread implementation from the dag and process the file sequencially make changes to main file also if needed the java code was working fine from the local but from the dag this code is not runing do the fix and give me the updated dag and the main file also
+
+
+
+
+from datetime import datetime, timedelta
+from airflow.operators.empty import EmptyOperator
+from airflow.models import Variable, DAG
+from airflow.decorators import task
+import os
+import subprocess
+import shlex
+from google.cloud import storage
+
+# Configuration setup
+default_dag_args = {
+    'retries': 1,
+    'retry_delay': timedelta(minutes=2),
+    'email_on_failure': True,
+    'email_on_retry': True,
+    'email': "vijaykumar.p@transunion.com",
+}
+
+# DAG Definition
+with DAG('zip_file_loader',
+         schedule_interval='@once',
+         start_date=datetime(2024, 6, 27),
+         default_args=default_dag_args) as dag:
+
+    @task(task_id="get_dat_files_from_gcs")
+    def get_dat_files_from_gcs():
+        """Retrieve DAT files from GCS and classify them"""
+        client = storage.Client()
+        bucket = client.bucket(Variable.get("maf_bucket_name"))
+        prefix = Variable.get("maf_files_prefix")
+        filenames = bucket.list_blobs(prefix=prefix)
+        zip5_files = [filename.name for filename in filenames if "Zip5" in filename.name]
+        zip9_files = [filename.name for filename in filenames if "Zip9" in filename.name]
+        return zip5_files, zip9_files
+
+    @task(task_id="process_dat_file")
+    def process_dat_file(file_name, loader_type):
+        """Process a single DAT file with given loader type"""
+        filename = file_name.split('/')[-1]
+        tmpfilename = f"/tmp/{filename}"
+        secrets_path = Variable.get('secrets_manager_path')
+        java_command = f"java -cp '/home/airflow/gcs/data/lib/*:/home/airflow/gcs/data/MafDatLoader-1.0-SNAPSHOT.jar' com.nis.data.pipeline.maf.MafDatLoader {tmpfilename} {run_id} {secrets_path} {loader_type}"
+        command_args = shlex.split(java_command)
+        subprocess.run(command_args, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    @task(task_id="finalize")
+    def finalize():
+        """Finalize processing"""
+        print("All files processed.")
+
+    # Define task flow
+    start = EmptyOperator(task_id="start")
+    end = EmptyOperator(task_id="end")
+    zip5_files, zip9_files = get_dat_files_from_gcs()
+    process_zip5_files = zip5_files.expand(task_id="process_zip5_file", file_name=zip5_files, loader_type="Zip5")
+    process_zip9_files = zip9_files.expand(task_id="process_zip9_file", file_name=zip9_files, loader_type="Zip9")
+
+    start >> zip5_files >> process_zip5_files >> finalize() >> end
+    start >> zip9_files >> process_zip9_files >> finalize() >> end
+
+
+
+
+
+
+
+package com.nis.data.pipeline.maf;
+
+import com.nis.data.pipeline.maf.loader.Zip5Loader;
+import com.nis.data.pipeline.maf.loader.Zip9Loader;
+import com.nis.data.pipeline.maf.util.AccessSecretVersion;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.time.LocalDateTime;
+
+public class MafDatLoader {
+    private static final Logger log = LogManager.getLogger(MafDatLoader.class);
+
+    public static void main(String[] args) {
+        LocalDateTime mainMethodStartLocalDateTime = LocalDateTime.now();
+        log.info("Application Starting at {}", mainMethodStartLocalDateTime);
+
+        if (args.length < 4) {
+            throw new RuntimeException("Insufficient arguments provided.");
+        }
+
+        String filename = args[0];
+        String runId = args[1];
+        String secretsManagerPath = args[2];
+        String loaderType = args[3];
+
+        AccessSecretVersion.setSecretsPath(secretsManagerPath);
+
+        if ("Zip5".equalsIgnoreCase(loaderType)) {
+            Zip5Loader zip5Loader = new Zip5Loader();
+            zip5Loader.loadZip5File(runId, filename, mainMethodStartLocalDateTime);
+        } else if ("Zip9".equalsIgnoreCase(loaderType)) {
+            Zip9Loader zip9Loader = new Zip9Loader();
+            zip9Loader.loadZip9File(runId, filename, mainMethodStartLocalDateTime);
+        } else {
+            log.error("Invalid loader type specified.");
+            throw new RuntimeException("Invalid loader type specified.");
+        }
+    }
+}
+
