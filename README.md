@@ -626,3 +626,136 @@ with DAG('zip_file_loader',
 
     start >> get_datFiles_from_gcs() >> [process_zip5, process_zip9] >> finalize() >> end
 
+
+from __future__ import annotations
+from datetime import datetime, timedelta
+from airflow.operators.empty import EmptyOperator
+import os
+import json
+from urllib.parse import urlparse
+from google.cloud import secretmanager, storage
+import google.auth
+import mysql.connector
+import subprocess
+import shlex
+from airflow.models import Variable
+from airflow.decorators import task
+from airflow.models.dag import DAG
+from zip_file_alerting_util import send_email
+import re
+
+# Configuration setup
+cred = google.auth.default()
+project_id = cred[1]
+
+maf_bucket_name = Variable.get("maf_bucket_name")
+prefix = Variable.get("maf_files_prefix")
+secretmanagerPath = Variable.get("secrets_manager_path")
+environment = "Test"
+
+default_dag_args = {
+    'retries': 1,
+    'retry_delay': timedelta(minutes=2),
+    'email_on_failure': True,
+    'email_on_retry': True,
+    'email': re.split("[,;]", "@EMAIL_DIST;vijaykumar.p@transunion.com"),
+}
+
+# Utility Functions
+def storage_client():
+    """Create a GCS storage client"""
+    return storage.Client()
+
+def get_db_config():
+    """Retrieve database configuration from Secret Manager"""
+    client = secretmanager.SecretManagerServiceClient()
+    try:
+        response = client.access_secret_version(name=secretmanagerPath)
+        secret = response.payload.data.decode('UTF-8')
+        secret_dict = json.loads(secret)
+        total_url = secret_dict["mysql_jdbc-url"]
+        parsed_url = urlparse(total_url)
+        
+        return {
+            'user': secret_dict["mysql_username"],
+            'password': secret_dict["mysql_password"],
+            'host': parsed_url.hostname,
+            'port': parsed_url.port,
+            'database': parsed_url.path.lstrip('/'),
+            'ssl_ca': "/home/airflow/gcs/data/certs/server-ca.pem",
+            'ssl_cert': "/home/airflow/gcs/data/certs/client-cert.pem",
+            'ssl_key': "/home/airflow/gcs/data/certs/client-key.pem"
+        }
+    except Exception as e:
+        print(f"Error retrieving secrets: {e}")
+        raise
+
+def download_file_from_gcs(source_file, destination_file):
+    """Download file from GCS to local filesystem"""
+    client = storage_client()
+    bucket = client.bucket(maf_bucket_name)
+    blob = bucket.blob(source_file)
+    blob.download_to_filename(destination_file)
+    print(f'File {source_file} downloaded to {destination_file}')
+
+def delete_file(file_path):
+    """Delete local file after processing"""
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        print(f'File {file_path} deleted')
+
+def process_single_dat_file(file_name, loader_type):
+    """Process a single DAT file"""
+    try:
+        filename = file_name.split('/')[-1]
+        tmpfilename = f"/tmp/{filename}"
+        # Download file
+        download_file_from_gcs(file_name, tmpfilename)
+        # Process file
+        java_command = f"java -cp /home/airflow/gcs/data/lib/*:/home/airflow/gcs/data/MafDatLoader-1.0-SNAPSHOT.jar com.nis.data.pipeline.maf.MafDatLoader {tmpfilename} {Variable.get('run_id')} {secretmanagerPath} {loader_type}"
+        command_args = shlex.split(java_command)
+        process = subprocess.run(command_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(f"Output for {filename}: {process.stdout}")
+        if process.stderr:
+            print(f"Errors for {filename}: {process.stderr}")
+        process.check_returncode()
+        return True
+    except Exception as e:
+        print(f"Error processing file {filename}: {e}")
+        return False
+    finally:
+        delete_file(tmpfilename)
+
+# DAG Definition
+with DAG('zip_file_loader',
+         schedule_interval='@once',
+         start_date=datetime(2024, 6, 27),
+         default_args=default_dag_args) as dag:
+
+    @task(task_id="get_dat_files_from_gcs")
+    def get_dat_files_from_gcs():
+        """Retrieve DAT files from GCS"""
+        client = storage_client()
+        bucket = client.bucket(maf_bucket_name)
+        filenames = bucket.list_blobs(prefix=prefix)
+        zip5_files = [filename.name for filename in filenames if "Zip5" in filename.name]
+        zip9_files = [filename.name for filename in filenames if "Zip9" in filename.name]
+        return {'zip5_files': zip5_files, 'zip9_files': zip9_files}
+
+    @task(task_id="process_dat_files")
+    def process_dat_files(files):
+        """Process DAT files"""
+        results = []
+        for file_name in files['zip5_files']:
+            results.append(process_single_dat_file(file_name, "Zip5"))
+        for file_name in files['zip9_files']:
+            results.append(process_single_dat_file(file_name, "Zip9"))
+        return all(results)
+
+    start = EmptyOperator(task_id="start")
+    end = EmptyOperator(task_id="end")
+    files = get_dat_files_from_gcs()
+    process_files = process_dat_files(files)
+
+    start >> files >> process_files >> end
+    
